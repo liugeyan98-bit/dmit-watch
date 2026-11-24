@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """DMIT 补货监控（云端版，纯标准库）。
 
 数据源：
@@ -177,11 +177,11 @@ def mail_config() -> tuple[str, str, str]:
     return user, pwd, to
 
 
-def send_mail(subject: str, body: str) -> None:
+def send_mail(subject: str, body: str) -> bool:
     user, pwd, to = mail_config()
     if not (user and pwd and to):
         print("[warn] 未配置 TONGZHI（或 MAIL_USER/MAIL_PASS），跳过发信")
-        return
+        return False
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = user
@@ -193,6 +193,7 @@ def send_mail(subject: str, body: str) -> None:
         s.login(user, pwd)
         s.send_message(msg)
     print(f"[mail] sent to {to}")
+    return True
 
 
 def main() -> int:
@@ -207,12 +208,15 @@ def main() -> int:
     # 手动触发时的自检：只发一封测试邮件，不碰基线
     if os.environ.get("TEST_MAIL", "").lower() in ("1", "true", "yes"):
         try:
-            send_mail(
+            sent = send_mail(
                 "[DMIT Watch] 测试邮件 · 链路正常",
                 "收到这封邮件说明 tongzhi 配置正确，邮件通道可用。\n\n"
                 "之后 DMIT 官方频道（t.me/dmitnews / t.me/DMIT_INC）一有补货或上新公告，"
                 "就会自动发到你的邮箱。\n",
             )
+            if not sent:
+                print("[error] 测试邮件未发送：缺少凭据")
+                return 1
             print("[test] 测试邮件已发送")
             return 0
         except Exception as e:  # noqa: BLE001
