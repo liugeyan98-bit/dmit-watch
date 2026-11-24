@@ -1,4 +1,4 @@
-name: DMIT Restock Watch
+﻿name: DMIT Restock Watch
 
 on:
   schedule:
@@ -48,7 +48,7 @@ jobs:
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_PASS: ${{ secrets.MAIL_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
-          TEST_MAIL: ${{ inputs.test }}
+          TEST_MAIL: "true"   # TEMP: 由 agent 触发一次测试发信
         run: |
           set -o pipefail
           python watch.py 2>&1 | tee last-run.log
