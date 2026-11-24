@@ -34,6 +34,7 @@ jobs:
 
       - name: Watch
         env:
+          TONGZHI: ${{ secrets.tongzhi }}
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_PASS: ${{ secrets.MAIL_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}

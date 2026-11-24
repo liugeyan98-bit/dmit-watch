@@ -154,12 +154,33 @@ def is_restock(text: str) -> bool:
     return any(w.lower() in low for w in RESTOCK_WORDS)
 
 
-def send_mail(subject: str, body: str) -> None:
+def mail_config() -> tuple[str, str, str]:
+    """支持两种配置方式：
+
+    1) 一个 secret `TONGZHI`，值写成三段：邮箱|授权码|收件地址
+       （分隔符支持 | 、逗号、分号、换行、空格）
+    2) 三个 secret：MAIL_USER / MAIL_PASS / MAIL_TO
+    """
+    raw = os.environ.get("TONGZHI", "").strip()
+    if raw:
+        parts = [p for p in re.split(r"[|,;\n\r]+", raw) if p.strip()]
+        if len(parts) == 1:
+            parts = [p for p in raw.split() if p.strip()]
+        parts = [p.strip() for p in parts]
+        if len(parts) >= 3:
+            return parts[0], parts[1], parts[2]
+        if len(parts) == 2:
+            return parts[0], parts[1], parts[0]
     user = os.environ.get("MAIL_USER", "").strip()
     pwd = os.environ.get("MAIL_PASS", "").strip()
     to = os.environ.get("MAIL_TO", "").strip() or user
+    return user, pwd, to
+
+
+def send_mail(subject: str, body: str) -> None:
+    user, pwd, to = mail_config()
     if not (user and pwd and to):
-        print("[warn] 未配置 MAIL_USER / MAIL_PASS，跳过发信")
+        print("[warn] 未配置 TONGZHI（或 MAIL_USER/MAIL_PASS），跳过发信")
         return
     msg = EmailMessage()
     msg["Subject"] = subject
