@@ -1,4 +1,4 @@
-﻿name: DMIT Restock Watch
+name: DMIT Restock Watch
 
 on:
   schedule:
@@ -48,7 +48,7 @@ jobs:
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_PASS: ${{ secrets.MAIL_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
-          TEST_MAIL: "true"   # TEMP: 由 agent 触发一次测试发信
+          TEST_MAIL: "true"
         run: |
           set -o pipefail
           python watch.py 2>&1 | tee last-run.log
@@ -60,17 +60,16 @@ jobs:
           path: state.json
           key: dmit-watch-state-${{ github.run_id }}
 
-      # 把本次运行的输出写回仓库，方便在仓库页直接看到（不需要登录读 Actions 日志）
+      # 把本次运行的输出写回仓库，方便直接看到（不需要登录读 Actions 日志）
       - name: Publish run log
         if: always()
         run: |
-          set -e
           {
             echo "# 最近一次运行"
             echo ""
             echo "- 时间：$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
             echo "- 触发：${{ github.event_name }}"
-            echo "- 测试模式：${{ inputs.test }}"
+            echo "- 运行号：${{ github.run_id }}"
             echo ""
             echo '```'
             cat last-run.log 2>/dev/null || echo '(无输出)'
@@ -78,7 +77,11 @@ jobs:
           } > LAST_RUN.md
           git config user.name "dmit-watch-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase --autostash origin main || true
           git add LAST_RUN.md
-          git commit -m "chore: run log $(date -u +%FT%TZ)" || true
-          git pull --rebase --autostash || true
-          git push || true
+          git commit -m "chore: run log ${{ github.run_id }}" || true
+          for i in 1 2 3; do
+            git push origin HEAD:main && break
+            echo "push failed, retry $i"; git pull --rebase --autostash origin main || true; sleep 5
+          done
+          echo "--- done ---"
