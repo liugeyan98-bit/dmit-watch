@@ -203,6 +203,22 @@ def main() -> int:
     except Exception:  # noqa: BLE001
         pass
     dry = os.environ.get("DRY_RUN", "") in ("1", "true", "yes")
+
+    # 手动触发时的自检：只发一封测试邮件，不碰基线
+    if os.environ.get("TEST_MAIL", "").lower() in ("1", "true", "yes"):
+        try:
+            send_mail(
+                "[DMIT Watch] 测试邮件 · 链路正常",
+                "收到这封邮件说明 tongzhi 配置正确，邮件通道可用。\n\n"
+                "之后 DMIT 官方频道（t.me/dmitnews / t.me/DMIT_INC）一有补货或上新公告，"
+                "就会自动发到你的邮箱。\n",
+            )
+            print("[test] 测试邮件已发送")
+            return 0
+        except Exception as e:  # noqa: BLE001
+            print(f"[error] 测试邮件发送失败: {e!r}")
+            return 1
+
     state = load_state()
     seen = state.setdefault("seen", {})
     first_run = not state.get("initialized")
