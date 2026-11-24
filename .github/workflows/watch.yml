@@ -10,9 +10,14 @@ on:
         description: "只发一封测试邮件（验证 tongzhi 配置）"
         type: boolean
         default: false
+  push:
+    branches: [main]
+    paths:
+      - "watch.py"
+      - ".github/workflows/watch.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: dmit-watch
@@ -44,7 +49,9 @@ jobs:
           MAIL_PASS: ${{ secrets.MAIL_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
           TEST_MAIL: ${{ inputs.test }}
-        run: python watch.py
+        run: |
+          set -o pipefail
+          python watch.py 2>&1 | tee last-run.log
 
       - name: Save state
         if: always()
@@ -52,3 +59,26 @@ jobs:
         with:
           path: state.json
           key: dmit-watch-state-${{ github.run_id }}
+
+      # 把本次运行的输出写回仓库，方便在仓库页直接看到（不需要登录读 Actions 日志）
+      - name: Publish run log
+        if: always()
+        run: |
+          set -e
+          {
+            echo "# 最近一次运行"
+            echo ""
+            echo "- 时间：$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "- 触发：${{ github.event_name }}"
+            echo "- 测试模式：${{ inputs.test }}"
+            echo ""
+            echo '```'
+            cat last-run.log 2>/dev/null || echo '(无输出)'
+            echo '```'
+          } > LAST_RUN.md
+          git config user.name "dmit-watch-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add LAST_RUN.md
+          git commit -m "chore: run log $(date -u +%FT%TZ)" || true
+          git pull --rebase --autostash || true
+          git push || true

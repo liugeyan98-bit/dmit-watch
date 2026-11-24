@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """DMIT 补货监控（云端版，纯标准库）。
 
 数据源：
@@ -189,10 +189,13 @@ def send_mail(subject: str, body: str) -> bool:
     msg["Date"] = formatdate(localtime=True)
     msg.set_content(body)
     ctx = ssl.create_default_context()
+    # 注意：绝对不要开 smtplib 的 debuglevel —— 它会把 AUTH 过程（含授权码）打进日志，
+    # 而本仓库的日志是公开的。
     with smtplib.SMTP_SSL("smtp.qq.com", 465, timeout=30, context=ctx) as s:
         s.login(user, pwd)
         s.send_message(msg)
-    print(f"[mail] sent to {to}")
+    masked = user.split("@")[0][:3] + "***@" + user.split("@")[-1]
+    print(f"[mail] sent as {masked} -> {to.split('@')[0][:3]}***@{to.split('@')[-1]}")
     return True
 
 
